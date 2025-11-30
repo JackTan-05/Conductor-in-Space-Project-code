@@ -1,0 +1,98 @@
+#define BUZZER_PIN 8
+
+
+// 9 button inputs
+int buttonPins[9] = {2, 3, 4, 5, 6, 7, 9, 10, 11};
+
+
+// RGB LED output pins
+#define RED_PIN   22
+#define GREEN_PIN 23
+#define BLUE_PIN  24
+
+
+// Planet names
+const char* planets[9] = {
+  "Mercury", "Venus", "Earth", "Mars",
+  "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto"
+};
+
+
+// Diameter → Frequency
+float diameter[9] = {
+  4879, 12104, 12756, 6792,
+  142984, 120536, 51118, 49528, 2370
+};
+
+
+int frequency[9];
+
+
+// *** Distinct RGB colors for each planet ***
+int colorR[9] = {255, 255,   0, 255, 255, 255, 100,  40, 200};
+int colorG[9] = {180,  80, 120,  40, 200, 255, 255,  80, 200};
+int colorB[9] = { 60,   0, 255,  40, 120, 120, 255, 255, 255};
+
+
+void setup() {
+  pinMode(BUZZER_PIN, OUTPUT);
+
+
+  Serial.begin(9600);
+
+
+  // Button setup
+  for (int i = 0; i < 9; i++) {
+    pinMode(buttonPins[i], INPUT_PULLUP);
+  }
+
+
+  // RGB LED setup
+  pinMode(RED_PIN, OUTPUT);
+  pinMode(GREEN_PIN, OUTPUT);
+  pinMode(BLUE_PIN, OUTPUT);
+
+
+  // Precompute planet frequencies
+  for (int i = 0; i < 9; i++) {
+    float fNorm = (diameter[i] - 2370.0) / (142984.0 - 2370.0);
+    frequency[i] = 150 + fNorm * (1200 - 150);
+  }
+}
+
+
+void loop() {
+  for (int i = 0; i < 9; i++) {
+
+
+    if (digitalRead(buttonPins[i]) == LOW) {
+      playPlanetKey(i);
+      delay(150);
+    }
+  }
+}
+
+
+void playPlanetKey(int i) {
+  Serial.print("Pressed: ");
+  Serial.println(planets[i]);
+
+
+  // Play sound
+  tone(BUZZER_PIN, frequency[i], 300);
+
+
+  // Set RGB LED to planet color
+  setRGB(colorR[i], colorG[i], colorB[i]);
+
+
+  delay(350);
+  noTone(BUZZER_PIN);
+}
+
+
+void setRGB(int r, int g, int b) {
+  analogWrite(RED_PIN,   r);
+  analogWrite(GREEN_PIN, g);
+  analogWrite(BLUE_PIN,  b);
+}
