@@ -1,0 +1,187 @@
+#define BUZZER_PIN 8
+#define BUTTON_PIN 2
+
+
+
+
+// RGB LED pins
+#define RED_PIN   22
+#define GREEN_PIN 23
+#define BLUE_PIN  24
+
+
+
+
+int lastButtonState = HIGH;
+int debounceDelay = 150;
+
+
+
+
+// Planet names
+const char* planets[9] = {
+  "Mercury","Venus","Earth","Mars",
+  "Jupiter","Saturn","Uranus","Neptune","Pluto"
+};
+
+
+
+
+// Diameter (km)
+float diameter[9] = {
+  4879,12104,12756,6792,
+  142984,120536,51118,49528,2370
+};
+
+
+
+
+// RGB colors for each planet (base colors)
+int planetColors[9][3] = {
+  {255, 150, 0},   // Mercury - orange
+  {255, 0, 0},     // Venus - red
+  {0, 255, 0},     // Earth - green
+  {255, 100, 0},   // Mars - reddish-orange
+  {255, 255, 0},   // Jupiter - yellow
+  {200, 200, 255}, // Saturn - pale blue
+  {0, 255, 255},   // Uranus - cyan
+  {0, 0, 255},     // Neptune - blue
+  {150, 0, 255}    // Pluto - purple
+};
+
+
+
+
+int frequencyScale[9];   // planet pitch scaling
+int currentPlanet = 0;
+
+
+
+
+// Ghibli-inspired melody
+int melody[] = {
+  440, 494, 523, 587, 523, 494, 440, 392,
+  392, 440, 494, 523, 494, 440, 392, 349,
+  349, 392, 440, 494, 440, 392, 349, 330,
+  392, 440, 494, 523, 587, 523, 494, 440
+};
+
+
+
+
+// matching note durations (ms)
+int durations[] = {
+  500,400,500,600,500,400,600,700,
+  500,400,500,600,500,400,600,700,
+  500,400,500,600,500,400,600,700,
+  400,400,450,450,600,500,500,900
+};
+
+
+
+
+int numNotes = sizeof(melody) / sizeof(melody[0]);
+
+
+
+
+void setup() {
+  pinMode(BUZZER_PIN,OUTPUT);
+  pinMode(BUTTON_PIN,INPUT_PULLUP);
+
+
+
+
+  pinMode(RED_PIN, OUTPUT);
+  pinMode(GREEN_PIN, OUTPUT);
+  pinMode(BLUE_PIN, OUTPUT);
+
+
+
+
+  Serial.begin(9600);
+
+
+
+
+  // Precompute pitch scaling
+  for (int i=0; i<9; i++) {
+    float norm = (diameter[i] - 2370.0) / (142984.0 - 2370.0);
+    frequencyScale[i] = 80 + norm * 40;  // gives multiplier 0.8–1.2
+  }
+}
+
+
+
+
+void loop() {
+  int buttonState = digitalRead(BUTTON_PIN);
+
+
+
+
+  if (buttonState == LOW && lastButtonState == HIGH) {
+    playPlanetMelody(currentPlanet);
+    currentPlanet = (currentPlanet + 1) % 9;
+    delay(debounceDelay);
+  }
+
+
+
+
+  lastButtonState = buttonState;
+}
+
+
+
+
+void playPlanetMelody(int p) {
+  Serial.print("Planet melody: ");
+  Serial.println(planets[p]);
+
+
+
+
+  float scale = frequencyScale[p] / 100.0;  // 0.8–1.2 multiplier
+  int baseR = planetColors[p][0];
+  int baseG = planetColors[p][1];
+  int baseB = planetColors[p][2];
+
+
+
+
+  for (int i = 0; i < numNotes; i++) {
+    int noteFreq = melody[i] * scale;
+    int noteDur  = durations[i];
+
+
+
+
+    // change LED color dynamically: slightly vary brightness per note
+    int r = constrain(baseR + (i*5)%50, 0, 255);
+    int g = constrain(baseG + (i*5)%50, 0, 255);
+    int b = constrain(baseB + (i*5)%50, 0, 255);
+    setRGB(r, g, b);
+
+
+
+
+    tone(BUZZER_PIN, noteFreq, noteDur);
+    delay(noteDur * 1.2);
+  }
+
+
+
+
+  noTone(BUZZER_PIN);
+  setRGB(0, 0, 0);  // turn off LED at the end
+}
+
+
+
+
+void setRGB(int r, int g, int b) {
+  analogWrite(RED_PIN, r);
+  analogWrite(GREEN_PIN, g);
+  analogWrite(BLUE_PIN, b);
+}
